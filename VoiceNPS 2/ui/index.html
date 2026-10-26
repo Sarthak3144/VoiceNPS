@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VoiceNPS</title>
+<style>
+  :root {
+    --bg: #0e1424; --panel: #151c30; --ink: #e8ecf6; --muted: #8b95b0; --line: #26304a;
+    --brand: #19c3a6; --brand-ink: #04211c; --listen: #19c3a6; --think: #f5b942; --speak: #5b8def;
+    --otp: #a672f0; --bad: #ef6a6a; --good: #36d399;
+    --phone: #ffffff; --phone-ink: #14203a; --phone-muted: #6b7794; --phone-line: #e7ebf3;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: radial-gradient(1200px 600px at 20% -10%, #1b2750 0%, var(--bg) 60%); color: var(--ink);
+         font: 15px/1.45 -apple-system, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .stage { max-width: 1120px; margin: 0 auto; padding: 24px 16px 40px; display: grid; gap: 24px;
+           grid-template-columns: 400px 1fr; align-items: start; }
+  @media (max-width: 880px) { .stage { grid-template-columns: 1fr; } }
+
+  /* ---------- the phone app ---------- */
+  .phone { background: var(--phone); color: var(--phone-ink); border-radius: 34px; overflow: hidden;
+           box-shadow: 0 30px 80px rgba(0,0,0,.45), 0 0 0 8px #0a0f1d, 0 0 0 9px #2a3558; min-height: 760px;
+           display: flex; flex-direction: column; position: relative; }
+  .app-head { padding: 22px 22px 18px; background: linear-gradient(135deg, #0f7d6c, #19c3a6); color: #fff; }
+  .logo { font-weight: 700; letter-spacing: .2px; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #fff; opacity: .9; }
+  .acct { display: flex; justify-content: space-between; align-items: end; margin-top: 14px; font-size: 13px; opacity: .95; }
+  .acct b { font-size: 22px; font-weight: 700; }
+  .orb-wrap { padding: 26px 20px 8px; text-align: center; }
+  .orb { width: 112px; height: 112px; border-radius: 50%; border: 0; cursor: pointer; position: relative;
+         display: inline-grid; place-items: center; color: #fff; background: #94a0b8; transition: background .25s, transform .15s; }
+  .orb:active { transform: scale(.96); }
+  .orb svg { width: 44px; height: 44px; }
+  .orb::before, .orb::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: inherit; opacity: 0; }
+  .orb[data-mode="listening"] { background: var(--listen); }
+  .orb[data-mode="listening"]::before { animation: ring 1.6s infinite ease-out; }
+  .orb[data-mode="listening"]::after { animation: ring 1.6s .8s infinite ease-out; }
+  .orb[data-mode="thinking"] { background: var(--think); }
+  .orb[data-mode="speaking"] { background: var(--speak); }
+  .orb[data-mode="speaking"]::before { animation: ring 1.1s infinite ease-out; }
+  .orb[data-mode="otp"] { background: var(--otp); }
+  .orb[data-mode="error"] { background: var(--bad); }
+  @keyframes ring { 0% { transform: scale(1); opacity: .45; } 100% { transform: scale(1.75); opacity: 0; } }
+  .status { margin-top: 14px; font-weight: 600; font-size: 16px; min-height: 22px; }
+  .live { min-height: 22px; color: var(--phone-muted); font-size: 14px; margin-top: 2px; font-style: italic; }
+
+  .chat { flex: 1; overflow-y: auto; padding: 8px 18px 12px; display: flex; flex-direction: column; gap: 8px;
+          max-height: 300px; }
+  .bubble { max-width: 86%; padding: 9px 13px; border-radius: 16px; font-size: 14px; }
+  .bubble.ai { background: #eef2f9; align-self: flex-start; border-bottom-left-radius: 5px; }
+  .bubble.me { background: #19c3a6; color: #04211c; align-self: flex-end; border-bottom-right-radius: 5px; }
+  body.no-captions .chat, body.no-captions .live { visibility: hidden; }
+
+  .otp { margin: 6px 18px 14px; padding: 16px; border-radius: 18px; background: #f4efff; border: 1px solid #dccbff; }
+  .otp h4 { margin: 0 0 4px; font-size: 14px; color: #5a2fb0; }
+  .otp p { margin: 0 0 10px; font-size: 12.5px; color: #6c58a0; }
+  .otp-row { display: flex; gap: 8px; }
+  .otp input { flex: 1; min-width: 0; font: 600 22px/1 ui-monospace, Menlo, monospace; letter-spacing: 8px; text-align: center;
+               padding: 12px 8px; border-radius: 12px; border: 2px solid #c9b4f5; outline: none; background: #fff; color: #2d1766; }
+  .otp input:focus { border-color: var(--otp); }
+  .btn { border: 0; border-radius: 12px; padding: 12px 16px; font-weight: 700; cursor: pointer; font-size: 14px; }
+  .btn.primary { background: var(--otp); color: #fff; }
+  .btn.ghost { background: transparent; color: #7a6aa8; }
+  .shake { animation: shake .35s; }
+  @keyframes shake { 20%,60% { transform: translateX(-6px); } 40%,80% { transform: translateX(6px); } }
+
+  .receipt { margin: 6px 18px 14px; padding: 16px; border-radius: 18px; background: #e9faf3; border: 1px solid #b6ecd4; }
+  .receipt .ok { display: flex; align-items: center; gap: 10px; font-weight: 700; color: #0b7a53; }
+  .receipt .ok span { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #36d399; color: #fff; }
+  .receipt dl { margin: 10px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; }
+  .receipt dt { color: #4a7c68; } .receipt dd { margin: 0; text-align: right; font-weight: 600; }
+
+  .app-foot { padding: 12px 18px 16px; border-top: 1px solid var(--phone-line); display: flex; gap: 10px; align-items: center;
+              justify-content: space-between; font-size: 12.5px; color: var(--phone-muted); }
+  .app-foot select, .app-foot button { font: inherit; }
+  .app-foot select { border: 1px solid var(--phone-line); border-radius: 8px; padding: 5px 6px; background: #fff; color: var(--phone-ink); }
+  .link { background: none; border: 0; color: #d04a4a; cursor: pointer; padding: 4px; font-weight: 600; }
+  .switch { display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+  .hidden { display: none !important; }
+  .banner { margin: 10px 18px 0; padding: 10px 12px; border-radius: 12px; background: #fff1f1; color: #a33; font-size: 13px; }
+
+  /* ---------- side panels ---------- */
+  .side { display: grid; gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 18px 20px; }
+  .card h3 { margin: 0 0 12px; font-size: 12px; letter-spacing: 1.3px; text-transform: uppercase; color: var(--muted); }
+  .pipe { display: grid; gap: 10px; }
+  .step { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; padding: 10px 12px; border-radius: 12px; background: #1a2340; }
+  .step .n { width: 26px; height: 26px; border-radius: 50%; background: #243058; display: grid; place-items: center; font-weight: 700; font-size: 12px; color: var(--brand); }
+  .step b { display: block; font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
+  .step div div { font-size: 14px; word-break: break-word; }
+  .step.flash { animation: flash 1s; }
+  @keyframes flash { 0% { background: #2a4a52; } 100% { background: #1a2340; } }
+  .chip { display: inline-block; padding: 2px 8px; margin: 2px 4px 2px 0; border-radius: 999px; background: #243058; font-size: 12px; }
+  .chip.on { background: #14513f; color: #7df0c6; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; font-size: 13.5px; }
+  .two h4 { margin: 0 0 6px; font-size: 13px; } .two ul { margin: 0; padding-left: 18px; color: #c4cce0; }
+  .yes h4 { color: var(--good); } .no h4 { color: var(--bad); }
+  .say li { margin: 3px 0; } .say q { color: #bfe9de; quotes: "\201C" "\201D"; }
+  .hist { display: grid; gap: 6px; font-size: 13.5px; }
+  .hist div { display: flex; justify-content: space-between; padding: 8px 10px; border-radius: 10px; background: #1a2340; }
+  .muted { color: var(--muted); }
+
+  .sms { width: 270px; border-radius: 28px; background: #0a0f1d; border: 2px solid #2a3558; padding: 14px 12px 16px; justify-self: start; }
+  .sms .bar { text-align: center; font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+  .sms .msg { background: #232e52; border-radius: 14px; padding: 10px 12px; font-size: 13px; margin-bottom: 8px; animation: pop .4s; }
+  .sms .msg small { display: block; color: var(--muted); margin-bottom: 3px; }
+  @keyframes pop { from { transform: translateY(-8px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .dev summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  .dev form { display: flex; gap: 8px; margin-top: 10px; }
+  .dev input { flex: 1; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--line); background: #0e1424; color: var(--ink); }
+  .dev button { padding: 9px 14px; border-radius: 10px; border: 0; background: var(--brand); color: var(--brand-ink); font-weight: 700; cursor: pointer; }
+  .seg { display: inline-flex; border: 1px solid var(--phone-line); border-radius: 10px; overflow: hidden; }
+  .seg button { border: 0; background: #fff; color: var(--phone-ink); padding: 6px 12px; cursor: pointer; font-weight: 600; }
+  .seg button.on { background: #19c3a6; color: #04211c; }
+</style>
+</head>
+<body>
+<main class="stage">
+
+  <!-- ===================== the app (what the user sees) ===================== -->
+  <section class="phone" aria-label="VoiceNPS app">
+    <header class="app-head">
+      <div class="logo"><i></i> VoiceNPS</div>
+      <div class="acct"><span id="acct">Demo Bank</span><b id="balance">NPR —</b></div>
+    </header>
+
+    <div class="orb-wrap">
+      <button id="orb" class="orb" data-mode="idle" aria-label="Microphone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>
+      </button>
+      <div id="status" class="status"></div>
+      <div id="live" class="live"></div>
+    </div>
+
+    <div id="banner" class="banner hidden"></div>
+    <div id="chat" class="chat" aria-live="polite"></div>
+
+    <div id="otpBox" class="otp hidden">
+      <h4 id="otpH"></h4>
+      <p id="otpP"></p>
+      <div class="otp-row">
+        <input id="otpInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••" aria-label="OTP">
+        <button id="otpBtn" class="btn primary"></button>
+      </div>
+      <button id="otpCancel" class="btn ghost" style="margin-top:8px;padding:6px 0"></button>
+    </div>
+
+    <div id="receipt" class="receipt hidden"></div>
+
+    <footer class="app-foot">
+      <label class="switch"><input type="checkbox" id="caps" checked> <span id="capsT"></span></label>
+      <div class="seg" role="group" aria-label="Language">
+        <button id="lEn" data-l="en">English</button><button id="lNe" data-l="ne">नेपाली</button>
+      </div>
+      <button id="end" class="link"></button>
+    </footer>
+  </section>
+
+  <!-- ===================== side panels (for the audience) ===================== -->
+  <aside class="side">
+    <div class="card">
+      <h3 id="hoodH"></h3>
+      <div class="pipe">
+        <div class="step" id="s1"><span class="n">1</span><div><b id="h1"></b><div id="p1" class="muted">—</div></div></div>
+        <div class="step" id="s2"><span class="n">2</span><div><b id="h2"></b><div id="p2" class="muted">—</div></div></div>
+        <div class="step" id="s3"><span class="n">3</span><div><b id="h3"></b><div id="p3" class="muted">—</div></div></div>
+        <div class="step" id="s4"><span class="n">4</span><div><b id="h4"></b><div id="p4" class="muted">—</div></div></div>
+      </div>
+    </div>
+
+    <div class="card two">
+      <div class="yes"><h4 id="yesH"></h4><ul id="yesL"></ul></div>
+      <div class="no"><h4 id="noH"></h4><ul id="noL"></ul></div>
+    </div>
+
+    <div class="card say">
+      <h3 id="sayH"></h3>
+      <ul id="sayL"></ul>
+      <div style="margin-top:10px" class="muted"><span id="contactsT"></span> <span id="contacts">—</span></div>
+      <div style="margin-top:6px" class="muted" id="rule"></div>
+    </div>
+
+    <div class="card"><h3 id="histH"></h3><div id="hist" class="hist"></div></div>
+
+    <div class="sms" id="smsPhone"><div class="bar" id="smsBar"></div><div id="smsList"></div></div>
+
+    <details class="card dev">
+      <summary id="devT"></summary>
+      <form id="devForm"><input id="devText" autocomplete="off"><button id="devBtn"></button></form>
+    </details>
+  </aside>
+</main>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const S = { running: false, otpMode: false, rec: null, noSpeech: 0, token: 0, audio: null, lastMode: "idle", lastStatus: null, info: null };
+  let L = "en";
+  try { L = localStorage.getItem("voicenps_lang") === "ne" ? "ne" : "en"; } catch (e) {}
+
+  /* ---------- every word the screen shows, in both languages ---------- */
+  const T = {
+    en: {
+      idle: "Tap the mic to start", listening: "Listening… tap the mic when done", hearing: "Hearing you…", thinking: "Thinking…",
+      speaking: "Speaking…", otp: "Type the code from your SMS", error: "Something went wrong", retry: "Please try again",
+      starting: "Starting…", ended: "Session ended. Mic is off. Tap the mic to start again.", blocked: "Microphone blocked",
+      captions: "Captions", end: "End", otpH: "Enter the code sent to your phone", verify: "Verify", cancelPay: "Cancel payment",
+      otpP: "This is the only thing you type. It is never spoken or shown to the assistant.",
+      hoodH: "Under the hood: last turn", h1: "Speech to text (what was heard)", h2: "AI understood (command only)",
+      h3: "Rules engine (validation, confirmation, OTP rule)", h4: "Assistant said", none: "(no command found)", otpReq: "OTP required",
+      yesH: "The AI layer sees", yesL: ["What you said (text)", "Which answer the system is waiting for"],
+      noH: "The AI layer never sees", noL: ["The OTP", "Balances", "Your contacts or account holders", "It cannot move money"],
+      sayH: "Try saying", contactsT: "Saved contacts:", histH: "Recent payments", noHist: "None yet", smsBar: "User's phone (simulated SMS inbox)",
+      noMsg: "No messages", msgNow: "Messages · now", devT: "Fallback if the microphone fails (developer only)", devPh: "Type what you would say", send: "Send",
+      rule: (t) => `OTP rule: amounts under NPR ${t} need no OTP; ${t} and above need one.`,
+      ok: "Payment successful", amount: "Amount", to: "To", bill: "Bill", ref: "Reference", otpUsed: "OTP used", yes: "Yes (typed)", no: "No (under limit)",
+      noSR: "This window has no speech recognition. Please use Google Chrome or Microsoft Edge.",
+      micBlocked: "Microphone blocked. Allow the microphone for VoiceNPS in your browser or system settings, then tap the mic again.",
+      micNone: "The microphone has not started. Check your input device and permissions.",
+      capture: "Cannot hear any microphone. Check Sound settings and that no other app is using the mic.",
+      network: "The speech service is unreachable. Check your internet connection.",
+      langNo: "This browser does not support speech recognition for this language. Try English.",
+      nothing: "…I didn't hear anything", again: "I did not hear anything. Please say it again.",
+      say: [["Send Rs 2000 to Ramesh", "(two Rameshes: it asks which)"], ["Pay Sita 300 rupees", "(under 500: no OTP)"],
+            ["Send 2000 to Sita", "(it asks: in rupees?)"], ["I want to send money", "(it asks who and how much)"],
+            ["Send Rs 500 to Hari", "(two identical names)"], ["Pay my electricity bill", "then the customer number 3 0 1 2 4 5"],
+            ["Recharge my mobile with 200 rupees", "then 9 8 4 1 0 0 0 0 0 0"], ["Yes", "→ another transaction"], ["End", "→ the mic turns off"]],
+    },
+    ne: {
+      idle: "सुरु गर्न माइकमा थिच्नुहोस्", listening: "सुन्दैछु… सकिएपछि माइकमा थिच्नुहोस्", hearing: "सुन्दैछु…", thinking: "सोच्दैछु…",
+      speaking: "बोल्दैछु…", otp: "SMS बाट आएको कोड टाइप गर्नुहोस्", error: "केही गडबड भयो", retry: "कृपया फेरि प्रयास गर्नुहोस्",
+      starting: "सुरु हुँदैछ…", ended: "सत्र सकियो। माइक बन्द छ। फेरि सुरु गर्न माइकमा थिच्नुहोस्।", blocked: "माइक रोकिएको छ",
+      captions: "क्याप्सन", end: "अन्त्य", otpH: "फोनमा आएको कोड हाल्नुहोस्", verify: "प्रमाणित गर्नुहोस्", cancelPay: "भुक्तानी रद्द गर्नुहोस्",
+      otpP: "यही मात्र तपाईंले टाइप गर्ने हो। यो कहिल्यै बोलिँदैन र सहायकलाई देखाइँदैन।",
+      hoodH: "भित्र के भइरहेको छ: पछिल्लो चरण", h1: "बोली → पाठ (के सुनियो)", h2: "AI ले बुझ्यो (आदेश मात्र)",
+      h3: "नियम इन्जिन (प्रमाणीकरण, पुष्टि, OTP नियम)", h4: "सहायकले भन्यो", none: "(आदेश भेटिएन)", otpReq: "OTP चाहिन्छ",
+      yesH: "AI तहले देख्छ", yesL: ["तपाईंले भनेको (पाठ)", "प्रणालीले कुन उत्तर पर्खिरहेको छ"],
+      noH: "AI तहले कहिल्यै देख्दैन", noL: ["OTP", "मौज्दात", "तपाईंका सम्पर्क वा खाताधनी", "यसले पैसा सार्न सक्दैन"],
+      sayH: "यस्तो भन्नुहोस्", contactsT: "सुरक्षित सम्पर्क:", histH: "हालका भुक्तानी", noHist: "अहिलेसम्म केही छैन", smsBar: "प्रयोगकर्ताको फोन (नमूना SMS)",
+      noMsg: "कुनै सन्देश छैन", msgNow: "सन्देश · अहिले", devT: "माइक नचलेमा विकल्प (विकासकर्ताका लागि)", devPh: "तपाईंले के भन्नुहुन्थ्यो टाइप गर्नुहोस्", send: "पठाउनुहोस्",
+      rule: (t) => `OTP नियम: रु ${t} भन्दा कम रकमलाई OTP चाहिँदैन; ${t} वा बढीलाई चाहिन्छ।`,
+      ok: "भुक्तानी सफल भयो", amount: "रकम", to: "प्राप्तकर्ता", bill: "बिल", ref: "सन्दर्भ", otpUsed: "OTP प्रयोग", yes: "हो (टाइप गरिएको)", no: "होइन (सीमाभन्दा कम)",
+      noSR: "यो विन्डोमा आवाज पहिचान छैन। कृपया Google Chrome वा Microsoft Edge प्रयोग गर्नुहोस्।",
+      micBlocked: "माइक रोकिएको छ। ब्राउजर वा सिस्टम सेटिङमा VoiceNPS लाई माइक अनुमति दिनुहोस्, अनि फेरि माइकमा थिच्नुहोस्।",
+      micNone: "माइक सुरु भएन। इनपुट डिभाइस र अनुमति जाँच्नुहोस्।",
+      capture: "कुनै माइक सुनिएन। साउन्ड सेटिङ र अर्को एपले माइक प्रयोग गरिरहेको छ कि जाँच्नुहोस्।",
+      network: "आवाज सेवासँग सम्पर्क भएन। इन्टरनेट जाँच्नुहोस्।",
+      langNo: "यो ब्राउजरमा यो भाषाको आवाज पहिचान समर्थित छैन। अंग्रेजी प्रयोग गर्नुहोस्।",
+      nothing: "…केही सुनिएन", again: "मैले केही सुनिनँ। कृपया फेरि भन्नुहोस्।",
+      say: [["रमेशलाई दुई हजार रुपैयाँ पठाउ", "(दुई रमेश: कुन भनेर सोध्छ)"], ["सीतालाई तीन सय रुपैयाँ पठाउ", "(५०० भन्दा कम: OTP चाहिँदैन)"],
+            ["सीतालाई दुई हजार पठाउ", "(रुपैयाँ हो कि भनेर सोध्छ)"], ["म पैसा पठाउन चाहन्छु", "(कसलाई र कति सोध्छ)"],
+            ["हरिलाई पाँच सय रुपैयाँ पठाउ", "(उस्तै दुई नाम)"], ["बिजुली बिल तिर्नु", "अनि ग्राहक नम्बर ३ ० १ २ ४ ५"],
+            ["मोबाइल रिचार्ज दुई सय रुपैयाँ", "अनि ९ ८ ४ १ ० ० ० ० ० ०"], ["हो", "→ अर्को कारोबार"], ["अन्त्य", "→ माइक बन्द हुन्छ"]],
+    },
+  };
+  const t = (k) => T[L][k];
+  const fmt = (n) => (L === "ne" ? "रु " : "NPR ") + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 0 });
+  const esc = (s) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  const SPEECH_LANG = { en: "en-IN", ne: "ne-NP" };
+
+  async function api(path, body) {
+    const r = await fetch(path, body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    return r.json();
+  }
+  function setMode(m, text) {
+    S.lastMode = m; S.lastStatus = text || null;
+    $("#orb").dataset.mode = m; $("#status").textContent = text || t(m);
+  }
+  function bubble(who, text) {
+    const d = document.createElement("div"); d.className = "bubble " + who; d.textContent = text;
+    $("#chat").appendChild(d); $("#chat").scrollTop = 1e9;
+  }
+  function banner(msg) { const b = $("#banner"); b.textContent = msg || ""; b.classList.toggle("hidden", !msg); }
+
+  /* ---------- screen text for the chosen language ---------- */
+  function applyLang() {
+    document.documentElement.lang = L === "ne" ? "ne" : "en";
+    const set = (id, v) => { $("#" + id).textContent = v; };
+    ["otpH", "otpP", "hoodH", "h1", "h2", "h3", "h4", "yesH", "noH", "sayH", "contactsT", "histH", "smsBar", "devT"].forEach((k) => set(k, t(k)));
+    set("otpBtn", t("verify")); set("otpCancel", t("cancelPay")); set("capsT", t("captions")); set("end", t("end")); set("devBtn", t("send"));
+    $("#devText").placeholder = t("devPh");
+    $("#yesL").innerHTML = t("yesL").map((x) => `<li>${esc(x)}</li>`).join("");
+    $("#noL").innerHTML = t("noL").map((x) => `<li>${esc(x)}</li>`).join("");
+    $("#sayL").innerHTML = t("say").map(([a, b]) => `<li><q>${esc(a)}</q> <span class="muted">${esc(b)}</span></li>`).join("");
+    document.querySelectorAll(".seg button").forEach((b) => b.classList.toggle("on", b.dataset.l === L));
+    if (!$("#smsList").children.length || $("#smsList").firstElementChild.classList.contains("muted")) $("#smsList").innerHTML = `<div class="muted" style="font-size:12px;text-align:center;padding:8px">${esc(t("noMsg"))}</div>`;
+    $("#status").textContent = S.lastStatus || t(S.lastMode);
+    if (S.info) fillInfo(S.info); else $("#hist").innerHTML = `<span class="muted">${esc(t("noHist"))}</span>`;
+  }
+
+  /* ---------- text to speech: natural Nepali from the local engine, browser voices as fallback ---------- */
+  let voices = [];
+  const loadVoices = () => { if ("speechSynthesis" in window) voices = speechSynthesis.getVoices(); };
+  if ("speechSynthesis" in window) { speechSynthesis.onvoiceschanged = loadVoices; loadVoices(); }
+  function browserVoice(lang) {
+    const pre = lang === "ne" ? ["ne", "hi"] : ["en-IN", "en"];
+    for (const p of pre) { const v = voices.find((x) => x.lang.replace("_", "-").startsWith(p)); if (v) return v; }
+    return null;
+  }
+  function speakBrowser(text, lang) {
+    return new Promise((resolve) => {
+      if (!("speechSynthesis" in window)) return resolve();
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text), v = browserVoice(lang);
+      if (v) { u.voice = v; u.lang = v.lang; } else u.lang = lang === "ne" ? "ne-NP" : "en-US";
+      let done = false; const fin = () => { if (!done) { done = true; clearTimeout(tm); resolve(); } };
+      const tm = setTimeout(fin, 4000 + text.length * 90);          // Chrome sometimes never fires onend
+      u.onend = fin; u.onerror = fin; speechSynthesis.speak(u);
+    });
+  }
+  function speakServer(text, lang) {
+    return new Promise(async (resolve) => {
+      try {
+        const r = await fetch("/api/tts?lang=" + lang + "&text=" + encodeURIComponent(text));
+        if (!r.ok) return resolve(false);
+        const url = URL.createObjectURL(await r.blob());
+        const a = new Audio(url); S.audio = a;
+        let done = false; const fin = (ok) => { if (!done) { done = true; clearTimeout(tm); URL.revokeObjectURL(url); S.audio = null; resolve(ok); } };
+        const tm = setTimeout(() => fin(true), 8000 + text.length * 150);
+        a.onended = () => fin(true); a.onerror = () => fin(false); a.onpause = () => fin(true);
+        a.play().catch(() => fin(false));
+      } catch (e) { resolve(false); }
+    });
+  }
+  async function speak(text, lang) {
+    lang = lang || L; setMode("speaking");
+    if (lang === "ne" && await speakServer(text, "ne")) return;   // gTTS Nepali (needs internet)
+    if (lang === "ne" && !browserVoice("ne")) {                     // neither works: be honest instead of mumbling
+      banner(L === "ne" ? "नेपाली आवाज उपलब्ध भएन (इन्टरनेट वा gTTS चाहिन्छ)। पाठ स्क्रिनमा देखिन्छ।" : "Nepali voice unavailable (needs internet and gTTS). The text is shown on screen.");
+      return new Promise((r) => setTimeout(r, Math.min(4000, text.length * 40)));
+    }
+    return speakBrowser(text, lang);
+  }
+  function silence() {
+    if (S.audio) { try { S.audio.pause(); } catch (e) {} S.audio = null; }
+    if ("speechSynthesis" in window) speechSynthesis.cancel();
+  }
+
+  /* ---------- speech to text ---------- */
+  function listen() {
+    return new Promise((resolve) => {
+      const rec = new SR(); S.rec = rec;
+      rec.lang = SPEECH_LANG[L]; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+      let finalText = "", lastInterim = "", settled = false, gotAudio = false;
+      const cap = setTimeout(() => { try { rec.stop(); } catch (e) {} }, 15000);        // never wait forever
+      const warn = setTimeout(() => { if (!gotAudio) banner(t("micNone")); }, 5000);
+      const done = (v) => { if (!settled) { settled = true; clearTimeout(cap); clearTimeout(warn); $("#live").textContent = ""; resolve(v); } };
+      rec.onaudiostart = () => { gotAudio = true; banner(""); };
+      rec.onspeechstart = () => setMode("listening", t("hearing"));
+      rec.onresult = (e) => {
+        let interim = "";
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const r = e.results[i]; if (r.isFinal) finalText += r[0].transcript; else interim += r[0].transcript;
+        }
+        lastInterim = interim; $("#live").textContent = finalText + interim;
+      };
+      rec.onerror = (e) => {
+        const c = e.error;
+        if (c === "not-allowed" || c === "service-not-allowed") return done(null);
+        if (c === "audio-capture") banner(t("capture"));
+        else if (c === "network") banner(t("network"));
+        else if (c === "language-not-supported") banner(t("langNo"));
+        done("");
+        if (c === "no-speech") $("#live").textContent = t("nothing");
+      };
+      rec.onend = () => done((finalText || lastInterim).trim());      // Chrome may skip the final flag
+      setMode("listening");
+      try { rec.start(); } catch (err) { done(""); }
+    });
+  }
+
+  /* ---------- conversation loop ---------- */
+  async function turn() {
+    if (!S.running || S.otpMode) return;
+    const my = S.token;
+    const text = await listen();
+    if (!S.running || my !== S.token || S.otpMode) return;
+    if (text === null) { banner(t("micBlocked")); stop(); setMode("error", t("blocked")); return; }
+    if (!text) {
+      if (++S.noSpeech >= 2) { S.noSpeech = 0; bubble("ai", t("again")); await speak(t("again")); }
+      return setTimeout(turn, 300);
+    }
+    S.noSpeech = 0; bubble("me", text);
+    setMode("thinking");
+    handle(await api("/api/say", { text }));
+  }
+
+  async function handle(r) {
+    if (r.error) { setMode("error", t("retry")); return setTimeout(turn, 600); }
+    if (r.lang && r.lang !== L) { L = r.lang; applyLang(); }
+    updateHood(r);
+    if (r.balance != null) $("#balance").textContent = fmt(r.balance);
+    bubble("ai", r.speech);
+    $("#receipt").classList.add("hidden");
+    const needOtp = r.expect === "otp_text";
+    S.otpMode = needOtp; $("#otpBox").classList.toggle("hidden", !needOtp);
+    if (r.sms) showSms(r.sms);
+    if (needOtp) setTimeout(() => $("#otpInput").focus(), 50);
+    if (r.result) showReceipt(r.result);                 // show the receipt first, then say it
+    if (r.done) refreshInfo();
+    await speak(r.speech, r.lang || L);
+    if (r.end) return endSession();                      // user said end: mic OFF
+    if (needOtp) { setMode("otp"); return; }
+    if (S.running) setTimeout(turn, 150);                // "yes / another": the mic stays ON
+  }
+
+  function endSession() {
+    stop(); S.otpMode = false; $("#otpBox").classList.add("hidden");
+    setMode("idle", t("ended"));
+  }
+
+  function updateHood(r) {
+    const f = (id, html) => { $("#" + id).innerHTML = html; const st = $("#s" + id.slice(1)); st.classList.remove("flash"); void st.offsetWidth; st.classList.add("flash"); };
+    if (r.heard != null) f("p1", "“" + esc(r.heard) + "”");
+    if (r.intent) {
+      const chips = Object.entries(r.intent.slots || {}).map(([k, v]) => `<span class="chip on">${esc(k)}: ${esc(v)}</span>`).join("");
+      f("p2", `<span class="chip">${esc(r.intent.name)}</span>` + chips);
+    } else if (r.heard != null) f("p2", `<span class="muted">${esc(t("none"))}</span>`);
+    f("p3", `<span class="chip">${esc(r.state)}</span>` + (r.state === "AWAIT_OTP" ? `<span class="chip on">${esc(t("otpReq"))}</span>` : ""));
+    f("p4", esc(r.speech));
+  }
+
+  function showSms(text) {
+    const l = $("#smsList"); if (l.firstElementChild && l.firstElementChild.classList.contains("muted")) l.innerHTML = "";
+    const m = document.createElement("div"); m.className = "msg"; m.innerHTML = `<small>${esc(t("msgNow"))}</small>` + esc(text);
+    l.prepend(m);
+  }
+  function showReceipt(x) {
+    const r = $("#receipt");
+    r.innerHTML = `<div class="ok"><span>✓</span> ${esc(t("ok"))}</div><dl>
+      <dt>${esc(t("amount"))}</dt><dd>${fmt(x.amount)}</dd><dt>${esc(x.kind === "transfer" ? t("to") : t("bill"))}</dt><dd>${esc(x.to)}</dd>
+      <dt>${esc(t("ref"))}</dt><dd>${esc(x.ref)}</dd><dt>${esc(t("otpUsed"))}</dt><dd>${esc(x.otp ? t("yes") : t("no"))}</dd></dl>`;
+    r.classList.remove("hidden");
+  }
+  async function refreshInfo() { try { fillInfo(await api("/api/state")); } catch (e) {} }
+  function fillInfo(i) {
+    S.info = i;
+    $("#acct").textContent = i.account; if (i.balance != null) $("#balance").textContent = fmt(i.balance);
+    $("#contacts").textContent = i.contacts.join(", ");
+    $("#rule").textContent = t("rule")(i.otp_threshold);
+    $("#hist").innerHTML = i.history.length
+      ? i.history.map((h) => `<div><span>${esc(h.to)}</span><b>${fmt(h.amount)}</b></div>`).join("")
+      : `<span class="muted">${esc(t("noHist"))}</span>`;
+  }
+
+  /* ---------- OTP (the only typed input) ---------- */
+  async function submitOtp() {
+    const v = $("#otpInput").value.trim();
+    const r = await api("/api/otp", { otp: v });
+    if (r.error) { const b = $("#otpInput"); b.classList.remove("shake"); void b.offsetWidth; b.classList.add("shake"); return; }
+    $("#otpInput").value = ""; setMode("thinking"); handle(r);
+  }
+  $("#otpBtn").onclick = submitOtp;
+  $("#otpInput").addEventListener("keydown", (e) => { if (e.key === "Enter") submitOtp(); });
+  $("#otpInput").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, ""); });
+  $("#otpCancel").onclick = async () => {
+    S.otpMode = false; $("#otpBox").classList.add("hidden"); bubble("me", L === "ne" ? "रद्द" : "Cancel");
+    handle(await api("/api/say", { text: "cancel" }));
+  };
+
+  /* ---------- start / stop ---------- */
+  async function micPreflight() {          // asks for the microphone once, up front (the app window remembers the answer)
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true;
+    try { const s = await navigator.mediaDevices.getUserMedia({ audio: true }); s.getTracks().forEach((x) => x.stop()); return true; }
+    catch (e) { return !(e && (e.name === "NotAllowedError" || e.name === "SecurityError")); }
+  }
+  async function start() {
+    if (!SR) { banner(t("noSR")); return; }
+    banner(""); setMode("thinking", t("starting"));
+    if (!(await micPreflight())) { banner(t("micBlocked")); setMode("error", t("blocked")); return; }
+    S.running = true; S.otpMode = false; S.token++; $("#chat").innerHTML = ""; $("#receipt").classList.add("hidden");
+    const r = await api("/api/session", { lang: L }); fillInfo(r.info); handle(r);
+  }
+  function stop() {
+    S.running = false; S.token++; try { S.rec && S.rec.abort(); } catch (e) {}
+    silence(); $("#live").textContent = ""; if ($("#orb").dataset.mode !== "error") setMode("idle");
+  }
+  $("#orb").onclick = () => {
+    if (!S.running) return start();
+    if ($("#orb").dataset.mode === "listening" && S.rec) { try { S.rec.stop(); } catch (e) {} return; }   // done talking
+    stop();
+  };
+  $("#end").onclick = () => { stop(); $("#otpBox").classList.add("hidden"); S.otpMode = false; };
+  $("#caps").onchange = (e) => document.body.classList.toggle("no-captions", !e.target.checked);
+  document.querySelectorAll(".seg button").forEach((b) => b.onclick = async () => {
+    L = b.dataset.l; try { localStorage.setItem("voicenps_lang", L); } catch (e) {}
+    banner(""); applyLang();
+    try { await api("/api/lang", { lang: L }); } catch (e) {}
+    if (S.running) { try { S.rec && S.rec.abort(); } catch (e) {} }   // the next listen() uses the new language
+  });
+  $("#devForm").onsubmit = async (e) => {
+    e.preventDefault(); const v = $("#devText").value.trim(); if (!v) return; $("#devText").value = "";
+    if (!S.running) { await start(); await new Promise((r) => setTimeout(r, 300)); }
+    try { S.rec && S.rec.abort(); } catch (err) {} S.token++;
+    bubble("me", v); handle(await api("/api/say", { text: v }));
+  };
+
+  /* heartbeat: lets the launcher close the engine when this window is closed */
+  const ping = () => fetch("/api/ping", { method: "POST", body: "{}" }).catch(() => {});
+  ping(); setInterval(ping, 3000);
+
+  applyLang(); setMode("idle"); refreshInfo();
+})();
+</script>
+</body>
+</html>

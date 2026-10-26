@@ -1,0 +1,8 @@
+{"ts": 1793024002.098149, "event": "validation_failed", "user": "user1", "kind": "bill", "fails": 1}
+{"ts": 1793024015.481855, "event": "validation_failed", "user": "user1", "kind": "bill", "fails": 2}
+{"ts": 1793024034.6703, "event": "validation_failed", "user": "user1", "kind": "bill", "fails": 1}
+{"ts": 1793024078.436602, "event": "otp_ok", "user": "user1"}
+{"ts": 1793024078.438014, "event": "executed", "user": "user1", "kind": "bill", "amount": 1840.0, "ok": true, "ref": "BP37E408FE21", "reason": ""}
+{"ts": 1793024132.034286, "event": "session_end", "user": "user1"}
+{"ts": 1793024283.5393028, "event": "executed", "user": "user1", "kind": "transfer", "amount": 3.0, "ok": true, "ref": "TX08DCAD6D62", "reason": ""}
+{"ts": 1793024301.127811, "event": "session_end", "user": "user1"}

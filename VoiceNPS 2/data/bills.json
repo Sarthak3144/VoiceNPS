@@ -1,0 +1,37 @@
+[
+  {
+    "biller": "electricity",
+    "customer_id": "301245",
+    "customer_name": "Ramesh Sharma",
+    "amount_due": 1840.0,
+    "name_ne": "रमेश शर्मा"
+  },
+  {
+    "biller": "electricity",
+    "customer_id": "301999",
+    "customer_name": "Sita Koirala",
+    "amount_due": 420.0,
+    "name_ne": "सीता कोइराला"
+  },
+  {
+    "biller": "internet",
+    "customer_id": "781234",
+    "customer_name": "Ramesh Sharma",
+    "amount_due": 1500.0,
+    "name_ne": "रमेश शर्मा"
+  },
+  {
+    "biller": "water",
+    "customer_id": "112233",
+    "customer_name": "Sita Koirala",
+    "amount_due": 350.0,
+    "name_ne": "सीता कोइराला"
+  },
+  {
+    "biller": "mobile topup",
+    "customer_id": "9841000000",
+    "customer_name": "Self",
+    "amount_due": 0.0,
+    "name_ne": "आफैँ"
+  }
+]

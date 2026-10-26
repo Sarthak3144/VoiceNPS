@@ -1,0 +1,84 @@
+{
+  "users": {
+    "user1": {
+      "account_no": "0011223344556",
+      "balance": 50000.0,
+      "contacts": [
+        {
+          "name": "Ramesh Sharma",
+          "account_no": "1234567890123",
+          "name_ne": "रमेश शर्मा"
+        },
+        {
+          "name": "Ramesh Bhattarai",
+          "account_no": "2468024680246",
+          "name_ne": "रमेश भट्टराई"
+        },
+        {
+          "name": "Sita Koirala",
+          "account_no": "9876543210987",
+          "name_ne": "सीता कोइराला"
+        },
+        {
+          "name": "Hari Thapa",
+          "account_no": "3333444455556",
+          "name_ne": "हरि थापा"
+        },
+        {
+          "name": "Hari Thapa",
+          "account_no": "3333444455557",
+          "name_ne": "हरि थापा"
+        },
+        {
+          "name": "Himalayan Traders",
+          "account_no": "5555666677778",
+          "name_ne": "हिमालयन ट्रेडर्स"
+        }
+      ]
+    }
+  },
+  "accounts": [
+    {
+      "account_no": "0011223344556",
+      "holder_name": "Sarthak Bhattarai",
+      "bank": "Demo Bank",
+      "name_ne": "सार्थक भट्टराई"
+    },
+    {
+      "account_no": "1234567890123",
+      "holder_name": "Ramesh Sharma",
+      "bank": "Demo Bank",
+      "name_ne": "रमेश शर्मा"
+    },
+    {
+      "account_no": "2468024680246",
+      "holder_name": "Ramesh Bhattarai",
+      "bank": "Demo Bank",
+      "name_ne": "रमेश भट्टराई"
+    },
+    {
+      "account_no": "9876543210987",
+      "holder_name": "Sita Koirala",
+      "bank": "Sample Bank",
+      "name_ne": "सीता कोइराला"
+    },
+    {
+      "account_no": "3333444455556",
+      "holder_name": "Hari Thapa",
+      "bank": "Demo Bank",
+      "name_ne": "हरि थापा"
+    },
+    {
+      "account_no": "3333444455557",
+      "holder_name": "Hari Thapa",
+      "bank": "Sample Bank",
+      "name_ne": "हरि थापा"
+    },
+    {
+      "account_no": "5555666677778",
+      "holder_name": "Himalayan Traders Pvt Ltd",
+      "bank": "Sample Bank",
+      "name_ne": "हिमालयन ट्रेडर्स प्रा. लि."
+    }
+  ]
+}
